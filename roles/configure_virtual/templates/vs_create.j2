@@ -44,7 +44,6 @@ avi_config:
   {% if avi_config_state != "absent" %}
 
   {% if ssl_key is defined and ssl_crt is defined %}
-
   sslkeyandcertificate:
     {% raw %}
     - key: "{{ lookup('file', ssl_key) }}"
@@ -59,8 +58,31 @@ avi_config:
       name: "{{ app_name }}-certificate"
       api_version: "{{ api_version | default('20.1.1') }}"
       avi_config_state: present
-
   {% endif %}
+
+  httppolicyset:
+    - name: "{{ app_name }}-http-policy-quarantine-pool"
+      cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
+      tenant: "{{ tenant_name | default('admin') }}"
+      tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
+      api_version: "{{ api_version | default('20.1.1') }}"
+      is_internal_policy: false
+      http_request_policy:
+        rules:
+          - enable: true
+            index: 1
+            match:
+              host_hdr:
+                match_case: INSENSITIVE
+                match_criteria: HDR_DOES_NOT_EQUAL
+                value:
+                  - "{{ app_name }}"
+            name: Rule 1
+            switching_action:
+              action: HTTP_SWITCHING_SELECT_POOL
+              pool_ref: "/api/pool?name={{ app_name }}-quarantine-pool"
+              status_code: HTTP_LOCAL_RESPONSE_STATUS_CODE_200
+      
 
   pool:
     - api_version: "{{ api_version | default('20.1.1') }}"
@@ -90,6 +112,22 @@ avi_config:
       health_monitor_refs: "/api/healthmonitor?name={{ hm_prof }}"
       inline_health_monitor: true
       {% endif %}
+    - api_version: "{{ api_version | default('20.1.1') }}" #Quarantine Pool
+      avi_config_state: present
+      name: "{{ app_name }}-quarantine-pool"
+      cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
+      tenant: "{{ tenant_name | default('admin') }}"
+      tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
+      lb_algorithm: LB_ALGORITHM_ROUND_ROBIN
+      default_server_port: "80"
+      servers:
+        - ip:
+           addr: "10.155.221.191"
+           type: 'V4'
+           enabled: True
+          port: 80
+      inline_health_monitor: true
+
 
   {% if env == "aws" %}
   vsvip:
@@ -145,8 +183,12 @@ avi_config:
         - port: "{{ listening_port | default('80') }}"
           {% if frontend_ssl == 1 %}
           enable_ssl: true
+      
+      {% if ssl_key is defined and ssl_crt is defined %}
       ssl_key_and_certificate_refs: "/api/sslkeyandcertificate?name={{ app_name }}-certificate"
+      {% else %}
       ssl_profile_ref: "/api/sslprofile?name=System-Standard"
+      {% endif %}
           {% endif %}
       {% if sni_type == "parent" %}
       type: VS_TYPE_VH_PARENT
@@ -154,4 +196,7 @@ avi_config:
       type: VS_TYPE_VH_CHILD
       vh_parent_vs_ref: "/api/virtualservice/virtualservice-asdasd-0852-4b97-bc14-d4d062d369fb"
       {% endif %}
+      http_policies:
+        - http_policy_set_ref: "/api/httppolicyset?name={{ app_name }}-http-policy-quarantine-pool"
+          index: 11
   {%  endif %}
