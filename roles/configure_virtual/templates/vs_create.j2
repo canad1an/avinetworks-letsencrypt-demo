@@ -1,5 +1,4 @@
-#jinja2: lstrip_blocks: True
-
+#jinja2: lstrip_blocks: True, trim_blocks:False
 set_fact:
   {% if app_type == "http" %}
     {% set network_prof = "System-TCP-Proxy" %}
@@ -43,6 +42,25 @@ set_fact:
 
 avi_config:
   {% if avi_config_state != "absent" %}
+
+  {% if ssl_key is defined and ssl_crt is defined %}
+
+  sslkeyandcertificate:
+    {% raw %}
+    - key: "{{ lookup('file', ssl_key) }}"
+      certificate:
+        certificate: "{{ lookup('file', ssl_crt) }}"
+        self_signed: false
+    {% endraw %}
+      cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
+      tenant: "{{ tenant_name | default('admin') }}"
+      tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
+      type: SSL_CERTIFICATE_TYPE_VIRTUALSERVICE
+      name: "{{ app_name }}-certificate"
+      api_version: "{{ api_version | default('20.1.1') }}"
+      avi_config_state: present
+
+  {% endif %}
 
   pool:
     - api_version: "{{ api_version | default('20.1.1') }}"
@@ -127,7 +145,7 @@ avi_config:
         - port: "{{ listening_port | default('80') }}"
           {% if frontend_ssl == 1 %}
           enable_ssl: true
-      ssl_key_and_certificate_refs: "/api/sslkeyandcertificate?name=System-Default-Cert"
+      ssl_key_and_certificate_refs: "/api/sslkeyandcertificate?name={{ app_name }}-certificate"
       ssl_profile_ref: "/api/sslprofile?name=System-Standard"
           {% endif %}
       {% if sni_type == "parent" %}
