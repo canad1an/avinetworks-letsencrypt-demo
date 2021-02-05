@@ -53,13 +53,13 @@
     - members:
       - cluster_uuid: "{{ clusteruuid_aws.obj.uuid }}"
         ip:
-          addr: "{{ vsvip_dal['obj']['results'][0]['vip'][0]['ip_address']['addr'] }}"
+          addr: "{{ vsvip_dal['obj']['results'][0]['vip'][0]['floating_ip']['addr'] }}"
           type: V4
         vs_uuid: "{{ vs_dal['obj']['results'][0]['uuid'] }}"
       name: "{{ ApplicationName }}-pool"
       priority: 9
-    health_monitor_refs:
-      - /api/healthmonitor?name=System-GSLB-Ping
+    # health_monitor_refs:
+    #   - /api/healthmonitor?name=System-GSLB-Ping
     controller_health_status_enabled: true
     pool_algorithm: GSLB_SERVICE_ALGORITHM_PRIORITY
     enabled: true

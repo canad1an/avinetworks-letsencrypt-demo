@@ -1,9 +1,23 @@
+- name: lookup uuid of subnet
+  avi_api_session:
+    avi_credentials:
+        username: "{{ avi_controller_username }}"
+        password: "{{ avi_controller_password }}"
+        api_version: "{{ avi_api_version }}"
+    controller: "{{ ctrl }}"
+    http_method: get
+    path: networksubnetlist
+    tenant: "admin"
+    params:
+      { name: "{{ aws_subnet }}" }
+  register: aws_subnet_uuid
 - name: Avi Deploy new virtual
   include_role:
     name: avinetworks.aviconfig
   vars:
-    cloud_name: "Default-Cloud"
-    app_name: "{{ ApplicationName }}"
+    cloud_name: "{{ CloudName }}"
+    app_name: "{{ ApplicationName.split('.')[0] }}"
+    domain_name: "{{ ApplicationName.split('.')[1:] | join('.') }}"
     app_type: "{{ ApplicationType }}"
     avi_controller: "{{ ctrl }}"
     location: "{{ loc }}"

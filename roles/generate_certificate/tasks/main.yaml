@@ -1,0 +1,69 @@
+- name: Create Lets Encrypt Control Script
+  avi_alertscriptconfig:
+    avi_credentials:
+        username: "{{ avi_controller_username }}"
+        password: "{{ avi_controller_password }}"
+        api_version: "{{ avi_api_version }}"
+        controller: "{{ ctrl }}"
+    name: "LetsEncryptControlScript"
+    tenant: "{{ tenant_name }}"
+    action_script: "{{ lookup('file', 'roles/generate_certificate/python/letsencrypt.py') }}"
+- name: Create Lets Encrypt Certificate Management Profile
+  avi_certificatemanagementprofile:
+    avi_credentials:
+        username: "{{ avi_controller_username }}"
+        password: "{{ avi_controller_password }}"
+        api_version: "{{ avi_api_version }}"
+        controller: "{{ ctrl }}"
+    name: "LetsEncryptCertificateManagement"
+    tenant: "{{ tenant_name }}"
+    run_script_ref: "/api/alertscriptconfig?name=LetsEncryptControlScript"
+    script_params:
+    - name: user
+      value: "{{ avi_controller_username }}"
+      is_sensitive: false
+      is_dynamic: false
+    - name: password
+      value: "{{ avi_controller_password }}"
+      is_sensitive: true
+      is_dynamic: false
+    - name: tenant
+      value: "{{ tenant_name }}"
+      is_sensitive: false
+      is_dynamic: false
+    # - name: dryrun
+    #   value: 'True'
+    #   is_sensitive: false
+    #   is_dynamic: false
+- name: Create SSL Certificate
+  avi_sslkeyandcertificate:
+    avi_credentials:
+        username: "{{ avi_controller_username }}"
+        password: "{{ avi_controller_password }}"
+        api_version: "{{ avi_api_version }}"
+        controller: "{{ ctrl }}"
+    name: "{{ ApplicationName }}-LetsEncrypt"
+    certificate:
+      self_signed: false
+      subject:
+        common_name: "{{ ApplicationName }}"
+    key_params:
+      algorithm: SSL_KEY_ALGORITHM_RSA
+      rsa_params:
+        key_size: SSL_KEY_2048_BITS
+    format: SSL_PEM
+    type: SSL_CERTIFICATE_TYPE_VIRTUALSERVICE
+    tenant: "{{ tenant_name }}"
+    certificate_management_profile_ref: "/api/certificatemanagementprofile?name=LetsEncryptCertificateManagement"
+- name: Apply SSL Certificate to VS
+  avi_virtualservice:
+    avi_credentials:
+        username: "{{ avi_controller_username }}"
+        password: "{{ avi_controller_password }}"
+        api_version: "{{ avi_api_version }}"
+        controller: "{{ ctrl }}"
+    name: "{{ ApplicationName }}-vip"
+    ssl_key_and_certificate_refs: "/api/sslkeyandcertificate?name={{ ApplicationName }}-LetsEncrypt"
+    tenant: "{{ tenant_name }}"
+    avi_api_update_method: patch
+    avi_api_patch_op: replace

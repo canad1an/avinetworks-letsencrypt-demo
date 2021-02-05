@@ -55,13 +55,13 @@ avi_config:
       tenant: "{{ tenant_name | default('admin') }}"
       tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
       type: SSL_CERTIFICATE_TYPE_VIRTUALSERVICE
-      name: "{{ app_name }}-certificate"
+      name: "{{ app_name }}.{{ domain_name }}-certificate"
       api_version: "{{ api_version | default('20.1.1') }}"
       avi_config_state: present
   {% endif %}
 
   httppolicyset:
-    - name: "{{ app_name }}-http-policy-quarantine-pool"
+    - name: "{{ app_name }}.{{ domain_name }}-http-policy-quarantine-pool"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       tenant: "{{ tenant_name | default('admin') }}"
       tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
@@ -76,18 +76,18 @@ avi_config:
                 match_case: INSENSITIVE
                 match_criteria: HDR_DOES_NOT_EQUAL
                 value:
-                  - "{{ app_name }}"
+                  - "{{ app_name }}.{{ domain_name }}"
             name: Rule 1
             switching_action:
               action: HTTP_SWITCHING_SELECT_POOL
-              pool_ref: "/api/pool?name={{ app_name }}-quarantine-pool"
+              pool_ref: "/api/pool?name={{ app_name }}.{{ domain_name }}-quarantine-pool"
               status_code: HTTP_LOCAL_RESPONSE_STATUS_CODE_200
       
 
   pool:
     - api_version: "{{ api_version | default('20.1.1') }}"
       avi_config_state: present
-      name: "{{ app_name }}-pool"
+      name: "{{ app_name }}.{{ domain_name }}-pool"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       tenant: "{{ tenant_name | default('admin') }}"
       tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
@@ -114,7 +114,7 @@ avi_config:
       {% endif %}
     - api_version: "{{ api_version | default('20.1.1') }}" #Quarantine Pool
       avi_config_state: present
-      name: "{{ app_name }}-quarantine-pool"
+      name: "{{ app_name }}.{{ domain_name }}-quarantine-pool"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       tenant: "{{ tenant_name | default('admin') }}"
       tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
@@ -131,7 +131,7 @@ avi_config:
 
   {% if env == "aws" %}
   vsvip:
-    - name: "{{ app_name }}-vsvip"
+    - name: "{{ app_name }}.{{ domain_name }}-vsvip"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       vip:
         - auto_allocate_ip: true
@@ -140,11 +140,13 @@ avi_config:
           avi_allocated_fip: true
           avi_allocated_vip: true
           enabled: true
-          subnet_uuid: "{{ aws_subnet_uuid_ford }}"
-          vip_id: '0'
+          subnet_uuid: "{{ aws_subnet_uuid['obj']['results'][0]['uuid'] }}"
+      dns_info:
+        - fqdn: "{{ app_name }}.{{ domain_name }}"
+          type: DNS_RECORD_A
   {% else %}
   vsvip:
-    - name: "{{ app_name }}-vsvip"
+    - name: "{{ app_name }}.{{ domain_name }}-vsvip"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       vip:
         - auto_allocate_ip: true
@@ -162,7 +164,7 @@ avi_config:
                 type: V4
               mask: "{{ vip_mask }}"
       dns_info:
-        - fqdn: "{{ app_name }}"
+        - fqdn: "{{ app_name }}.{{ domain_name }}"
           type: DNS_RECORD_A
   {% endif %}
 
@@ -171,19 +173,23 @@ avi_config:
       avi_config_state: present
       avi_api_update_method: patch
       avi_api_patch_op: replace
-      name: "{{ app_name }}-vip"
+      name: "{{ app_name }}.{{ domain_name }}-vip"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       tenant: "{{ tenant_name | default('admin') }}"
       tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
-      pool_ref: "/api/pool?name={{ app_name }}-pool"
-      vsvip_ref: "/api/vsvip?name={{ app_name }}-vsvip"
+      pool_ref: "/api/pool?name={{ app_name }}.{{ domain_name }}-pool"
+      vsvip_ref: "/api/vsvip?name={{ app_name }}.{{ domain_name }}-vsvip"
       network_profile_ref: "/api/networkprofile?name={{ network_prof }}"
       application_profile_ref: "/api/applicationprofile?name={{ app_profile }}"
       services:
         - port: "{{ listening_port | default('80') }}"
           {% if frontend_ssl == 1 %}
           enable_ssl: true
-      
+        {% if listening_port == "443" %}
+        - port: "80"
+          enable_ssl: false
+        {% endif %}
+ 
       {% if ssl_key is defined and ssl_crt is defined %}
       ssl_key_and_certificate_refs: "/api/sslkeyandcertificate?name={{ app_name }}-certificate"
       {% else %}
@@ -197,6 +203,6 @@ avi_config:
       vh_parent_vs_ref: "/api/virtualservice/virtualservice-asdasd-0852-4b97-bc14-d4d062d369fb"
       {% endif %}
       http_policies:
-        - http_policy_set_ref: "/api/httppolicyset?name={{ app_name }}-http-policy-quarantine-pool"
+        - http_policy_set_ref: "/api/httppolicyset?name={{ app_name }}.{{ domain_name }}-http-policy-quarantine-pool"
           index: 11
   {%  endif %}

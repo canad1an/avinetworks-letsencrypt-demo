@@ -1,0 +1,8 @@
+- name: Create Tenant
+  avi_tenant:
+    avi_credentials:
+        username: "{{ avi_controller_username }}"
+        password: "{{ avi_controller_password }}"
+        api_version: "{{ avi_api_version }}"
+        controller: "{{ ctrl }}"
+    name: "{{ tenant_name }}"
