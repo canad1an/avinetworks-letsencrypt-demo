@@ -46,7 +46,7 @@
         controller: "{{ ctrl }}"
     name: "{{ ApplicationName }}-gslbservice"
     domain_names:
-    - "{{ ApplicationName }}"
+    - "{{ ApplicationName.split('.')[0] }}-wip.{{ ApplicationName.split('.')[1:] | join('.') }}"
     down_response: 
       type: GSLB_SERVICE_DOWN_RESPONSE_NONE
     groups:
