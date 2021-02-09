@@ -1,4 +1,4 @@
-# Avi Networks
+# Avi Networks Let's Encrypt Demo
 
 This playbook is designed to create a new gslbservice and virtualservice on an Avi controller and generate a new valid certificate through Lets Encrypt.
 
@@ -23,9 +23,10 @@ ListeningPort='443'
 sni=none [parent|child]
 PoolMembers='10.10.10.10,80,enabled'
 CloudName=Default-Cloud
-ssl_key=ssl/key.key
-ssl_crt=ssl/crt.crt
-GenerateCertificate=True
+ssl_key=ssl/key.key (Optional, creates a certificate with cert and key)
+ssl_crt=ssl/crt.crt (Optional, creates a certificate with cert and key)
+GenerateCertificate=True (Optional, Generates a certificate via Let's Encrypt)
+WafEnabled=True (Optional, enables the WAF on the VIP)
 ```
 
 ## Usage

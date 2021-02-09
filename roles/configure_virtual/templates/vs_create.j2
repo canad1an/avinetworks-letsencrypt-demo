@@ -205,4 +205,7 @@ avi_config:
       http_policies:
         - http_policy_set_ref: "/api/httppolicyset?name={{ app_name }}.{{ domain_name }}-http-policy-quarantine-pool"
           index: 11
+      {% if WafEnabled | default(false) %}
+      waf_policy_ref: "/api/wafpolicy?name=System-WAF-Policy"
+      {% endif %}
   {%  endif %}
