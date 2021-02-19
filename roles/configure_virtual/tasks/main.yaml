@@ -1,3 +1,16 @@
+- name: lookup uuid of cloud
+  avi_api_session:
+    avi_credentials:
+        username: "{{ avi_controller_username }}"
+        password: "{{ avi_controller_password }}"
+        api_version: "{{ avi_api_version }}"
+    controller: "{{ ctrl }}"
+    http_method: get
+    path: cloud
+    tenant: "admin"
+    params:
+      { name: "{{ CloudName }}" }
+  register: aws_cloud
 - name: lookup uuid of subnet
   avi_api_session:
     avi_credentials:
@@ -9,8 +22,10 @@
     path: networksubnetlist
     tenant: "admin"
     params:
-      { name: "{{ aws_subnet }}" }
+      { name: "{{ aws_subnet }}",
+        cloud_uuid: "{{ aws_cloud['obj']['results'][0]['uuid'] }}" }
   register: aws_subnet_uuid
+- debug: var=aws_subnet_uuid
 - name: Avi Deploy new virtual
   include_role:
     name: avinetworks.aviconfig
