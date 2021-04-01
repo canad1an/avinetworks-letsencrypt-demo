@@ -212,7 +212,7 @@ def get_crt(user, password, tenant, api_version, account_key, csr, CA=DEFAULT_CA
         if not serving_on_port_80:
             # Add to port to virtualservice
             log.info("Adding port 80 to VS")
-            service_on_port_80_data = {          
+            service_on_port_80_data = {
                 "enable_http2": False,
                 "enable_ssl": False,
                 "port": 80,
@@ -223,7 +223,7 @@ def get_crt(user, password, tenant, api_version, account_key, csr, CA=DEFAULT_CA
         log.info("Updated VS")
         log.error(rsp)
 
-        exception_occured = None
+        exception_occurred = None
         try:
             # check that the file is in place
             try:
@@ -239,7 +239,7 @@ def get_crt(user, password, tenant, api_version, account_key, csr, CA=DEFAULT_CA
                 raise ValueError("Challenge did not pass for {0}: {1}".format(domain, authorization))
 
         except:
-            exception_occured = sys.exc_info()
+            exception_occurred = sys.exc_info()
         finally:
             # Update the vs
             patch_data = {"delete" : {"http_policies": [{"http_policy_set_ref": "/api/httppolicyset/{}".format(httppolicy_uuid), "index":1000001}]}}
@@ -252,9 +252,9 @@ def get_crt(user, password, tenant, api_version, account_key, csr, CA=DEFAULT_CA
             log.info("Deleted HTTPPolicy")
             log.error(rsp)
 
-        if exception_occured:
-            log.error(exception_occured)
-            raise exception_occured
+        if exception_occurred:
+            log.error(exception_occurred)
+            raise exception_occurred[1]
 
         log.info("{0} verified!".format(domain))
 
@@ -295,18 +295,18 @@ def certificate_request(csr, common_name, kwargs):
         f.write(csr)
 
     signed_crt = None
-    exception_occured = None
+    exception_occurred = None
     try:
         signed_crt = get_crt(user, password, tenant, api_version, account_key_temp_file.name, csr_temp_file.name, directory_url=directory_url, contact=contact)
     except:
-        exception_occured = sys.exc_info()
+        exception_occurred = sys.exc_info()
     finally:
         os.remove(csr_temp_file.name)
         os.remove(account_key_temp_file.name)
 
-    if not signed_crt:
-        log.error(exception_occured)
-        raise exception_occured
+    if not exception_occurred:
+        log.error(exception_occurred)
+        raise exception_occurred[1]
 
     log.info(signed_crt)
     return signed_crt
