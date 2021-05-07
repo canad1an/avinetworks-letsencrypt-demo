@@ -9,7 +9,7 @@ This playbook is designed to create a new gslbservice and virtualservice on an A
 avi_controller_username: admin
 avi_controller_password: avi123
 avi_api_version: 20.1.3
-avi_controller_ford: 5.5.5.5
+avi_controller: 5.5.5.5
 aws_subnet: aws-subnet
 ```
 
